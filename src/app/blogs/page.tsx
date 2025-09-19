@@ -1,13 +1,49 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios"
 
 export default function Blogs() {
 	const router = useRouter()
 
-	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+	const [title, setTitle] = useState<string>("")
+	const [slug, setSlug] = useState<string>("")
+	const [bannerImage, setBannerImage] = useState<File | null>(null)
+	const [thumbnail, setThumbnail] = useState<File | null>(null)
+	const [isFeatured, setIsFeatured] = useState<boolean>(false)
+	const [blogHtml, setBlogHtml] = useState<string>("")
+
+	const handleResetForm = () => {
+		setTitle("")
+		setSlug("")
+		setBannerImage(null)
+		setThumbnail(null)
+		setIsFeatured(false)
+		setBlogHtml("")
+	}
+
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
-		router.push("/home")
+
+		const formData = new FormData()
+		formData.append("title", title)
+		formData.append("slug", slug)
+		formData.append("blogHtml", blogHtml)
+		formData.append("isFeatured", isFeatured.toString())
+		if (bannerImage) formData.append("bannerImage", bannerImage)
+		if (thumbnail) formData.append("thumbnail", thumbnail)
+
+		await axios
+			.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/blogs`, formData)
+			.then((response) => {
+				console.log(response.data)
+				handleResetForm()
+				alert("Blog created successfully!")
+			})
+			.catch((error) => {
+				console.error(error)
+			})
 	}
 
 	return (
@@ -36,6 +72,8 @@ export default function Blogs() {
 							type="text"
 							id="title"
 							name="title"
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
 							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
@@ -51,6 +89,8 @@ export default function Blogs() {
 							type="text"
 							id="slug"
 							name="slug"
+							value={slug}
+							onChange={(e) => setSlug(e.target.value)}
 							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
@@ -67,6 +107,9 @@ export default function Blogs() {
 							id="bannerImage"
 							name="bannerImage"
 							accept="image/*"
+							onChange={(e) =>
+								setBannerImage(e.target.files?.[0] || null)
+							}
 							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
@@ -83,6 +126,9 @@ export default function Blogs() {
 							id="thumbnail"
 							name="thumbnail"
 							accept="image/*"
+							onChange={(e) =>
+								setThumbnail(e.target.files?.[0] || null)
+							}
 							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
@@ -92,6 +138,8 @@ export default function Blogs() {
 							type="checkbox"
 							id="isFeatured"
 							name="isFeatured"
+							checked={isFeatured}
+							onChange={(e) => setIsFeatured(e.target.checked)}
 							className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 						/>
 						<label
@@ -113,6 +161,8 @@ export default function Blogs() {
 							id="newsHtml"
 							name="newsHtml"
 							rows={6}
+							value={blogHtml}
+							onChange={(e) => setBlogHtml(e.target.value)}
 							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</div>
