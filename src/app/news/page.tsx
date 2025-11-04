@@ -16,7 +16,6 @@ export default function News() {
 	const [id, setId] = useState<string>("")
 	const [title, setTitle] = useState<string>("")
 	const [date, setDate] = useState<string>("")
-	const [slug, setSlug] = useState<string>("")
 	const [bannerImage, setBannerImage] = useState<File | null>(null)
 	const [thumbnail, setThumbnail] = useState<File | null>(null)
 	const [isFeatured, setIsFeatured] = useState<boolean>(false)
@@ -27,7 +26,6 @@ export default function News() {
 		setId("")
 		setTitle("")
 		setDate("")
-		setSlug("")
 		setBannerImage(null)
 		setThumbnail(null)
 		setIsFeatured(false)
@@ -51,7 +49,6 @@ export default function News() {
 		formData.append("id", finalId)
 		formData.append("title", title)
 		formData.append("date", new Date(date).toISOString())
-		formData.append("slug", slug)
 		formData.append("newsHtml", newsHtml)
 		formData.append("isFeatured", isFeatured.toString())
 		if (bannerImage) formData.append("bannerImage", bannerImage)
@@ -153,23 +150,6 @@ export default function News() {
 					</div>
 
 					{/* Slug */}
-					<div>
-						<label
-							htmlFor="slug"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Slug
-						</label>
-						<input
-							type="text"
-							id="slug"
-							name="slug"
-							value={slug}
-							onChange={(e) => setSlug(e.target.value)}
-							required
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
 
 					{/* Banner Image */}
 					<div>

@@ -16,7 +16,7 @@ export default function TextEditor({ content, setContent }: TextEditorProps) {
         onEditorChange={(newValue) => setContent(newValue)}
         init={{
           height: 400,
-          menubar: false,
+          menubar: true,
           plugins: [
             "advlist",
             "autolink",
