@@ -19,6 +19,11 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      "@next/next/no-img-element": "off",          // allow <img> usage
+      "@typescript-eslint/no-explicit-any": "warn", // allow 'any' but warn
+      "react-hooks/exhaustive-deps": "warn",       // warn on missing useEffect deps
+    },
   },
 ];
 
