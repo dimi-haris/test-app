@@ -53,7 +53,7 @@ export default function Blogs() {
     };
 
     fetchBlogs();
-  }, []);
+  }, [API_BASE]);
 
   // Load full blog when selected
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function Blogs() {
     };
 
     loadBlog();
-  }, [selectedBlogId]);
+  }, [selectedBlogId,API_BASE]);
 
   const handleResetForm = () => {
     setId("");
