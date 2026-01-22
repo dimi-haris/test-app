@@ -1,236 +1,307 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import axios from "axios"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const TextEditor = dynamic(() => import("../components/RichTextEditor"), {
-  ssr: false, // 🚀 Prevents server-side rendering
+  ssr: false,
 });
 
-export default function News() {
-	const router = useRouter()
+interface NewsSummary {
+  id: string;
+  title: string;
+}
 
-	// States
-	const [id, setId] = useState<string>("")
-	const [title, setTitle] = useState<string>("")
-	const [date, setDate] = useState<string>("")
-	const [bannerImage, setBannerImage] = useState<File | null>(null)
-	const [thumbnail, setThumbnail] = useState<File | null>(null)
-	const [isFeatured, setIsFeatured] = useState<boolean>(false)
-	const [newsHtml, setNewsHtml] = useState<string>("")
+interface News extends NewsSummary {
+  date?: string;
+  bannerImage?: string;
+  thumbnail?: string;
+  newsHtml: string;
+  isFeatured?: boolean;
+}
 
-	// Reset form
-	const handleResetForm = () => {
-		setId("")
-		setTitle("")
-		setDate("")
-		setBannerImage(null)
-		setThumbnail(null)
-		setIsFeatured(false)
-		setNewsHtml("")
-	}
+export default function NewsPage() {
+  const router = useRouter();
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+	
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-	// Submit handler
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
+  const [newsList, setNewsList] = useState<NewsSummary[]>([]);
+  const [selectedNewsId, setSelectedNewsId] = useState("");
 
-		// If user provided ID → use it, otherwise generate one (slug-style)
-		const finalId =
-			id.trim() !== ""
-				? id.trim().toLowerCase()
-				: `news-${Date.now()}-${Math.random()
-						.toString(36)
-						.substring(2, 7)
-						.toLowerCase()}`
+  const [id, setId] = useState("");
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [bannerImage, setBannerImage] = useState<File | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [newsHtml, setNewsHtml] = useState("");
+  const [isFeatured, setIsFeatured] = useState(false);
 
-		const formData = new FormData()
-		formData.append("id", finalId)
-		formData.append("title", title)
-		formData.append("date", new Date(date).toISOString())
-		formData.append("newsHtml", newsHtml)
-		formData.append("isFeatured", isFeatured.toString())
-		if (bannerImage) formData.append("bannerImage", bannerImage)
-		if (thumbnail) formData.append("thumbnail", thumbnail)
+  const [existingBannerUrl, setExistingBannerUrl] = useState("");
+  const [existingThumbnailUrl, setExistingThumbnailUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-		try {
-			const response = await axios.post(
-				`${process.env.NEXT_PUBLIC_API_BASE_URL}/news`,
-				formData
-			)
-			console.log(response.data)
-			handleResetForm()
-			alert(`✅ News created successfully!\nID: ${finalId}`)
-		} catch (error) {
-			console.error("❌ Error creating news:", error)
-			alert("Failed to create news. Please check console for details.")
-		}
-	}
+  // Fetch all news
+  useEffect(() => {
+    const fetchNewsList = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/news`);
+        const result = await res.json();
+        setNewsList(Array.isArray(result) ? result : result.data || []);
+      } catch (err) {
+        console.error("Failed to fetch news list", err);
+      }
+    };
+    fetchNewsList();
+  }, [API_BASE]);
 
-	return (
-		<div className="min-h-screen p-8 bg-gray-100">
-			<div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
-				<div className="flex items-center justify-between mb-6">
-					<h1 className="text-2xl font-bold text-black">Create News</h1>
-					<button
-						onClick={() => router.back()}
-						className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 focus:outline-none"
-					>
-						← Back
-					</button>
-				</div>
+  // Load selected news
+  useEffect(() => {
+    if (!selectedNewsId) {
+      resetForm();
+      return;
+    }
 
-				<form className="space-y-6" onSubmit={handleSubmit}>
-					{/* Custom ID Field */}
-					<div>
-						<label
-							htmlFor="id"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Custom ID (optional)
-						</label>
-						<input
-							type="text"
-							id="id"
-							name="id"
-							value={id}
-							onChange={(e) =>
-								setId(
-									e.target.value
-										.toLowerCase()
-										.replace(/[^a-z0-9\-]/g, "-")
-								)
-							}
-							placeholder="e.g. from-a-dream-to-a-platform"
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-						<p className="text-xs text-gray-500 mt-1">
-							Only lowercase letters, numbers, and dashes allowed.  
-							If left blank, an ID like <code>news-1730042472-abcd1</code> will be auto-generated.
-						</p>
-					</div>
+    const loadNews = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/news/${selectedNewsId}`);
+        const news: News = await res.json();
 
-					{/* Title */}
-					<div>
-						<label
-							htmlFor="title"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Title
-						</label>
-						<input
-							type="text"
-							id="title"
-							name="title"
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-							required
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
+        setId(news.id);
+        setTitle(news.title);
+        setDate(news.date?.slice(0, 10) || "");
+        setNewsHtml(news.newsHtml || "");
+        setIsFeatured(news.isFeatured || false);
 
-					{/* Date */}
-					<div>
-						<label
-							htmlFor="date"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Date
-						</label>
-						<input
-							type="date"
-							id="date"
-							name="date"
-							value={date}
-							onChange={(e) => setDate(e.target.value)}
-							required
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
+        if (news.bannerImage) {
+          setExistingBannerUrl(
+            news.bannerImage.startsWith("http")
+              ? news.bannerImage
+              : `${API_URL}/uploads/blog_banner_images/${news.bannerImage}`
+          );
+        }
 
-					{/* Slug */}
+        if (news.thumbnail) {
+          setExistingThumbnailUrl(
+            news.thumbnail.startsWith("http")
+              ? news.thumbnail
+              : `${API_URL}/uploads/blog_thumbnails/${news.thumbnail}`
+          );
+        }
 
-					{/* Banner Image */}
-					<div>
-						<label
-							htmlFor="bannerImage"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Banner Image
-						</label>
-						<input
-							type="file"
-							id="bannerImage"
-							name="bannerImage"
-							accept="image/*"
-							onChange={(e) =>
-								setBannerImage(e.target.files?.[0] || null)
-							}
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
+        setBannerImage(null);
+        setThumbnail(null);
+      } catch (err) {
+        console.error("Failed to load news", err);
+        alert("Failed to load news");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-					{/* Thumbnail */}
-					<div>
-						<label
-							htmlFor="thumbnail"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							Thumbnail
-						</label>
-						<input
-							type="file"
-							id="thumbnail"
-							name="thumbnail"
-							accept="image/*"
-							onChange={(e) =>
-								setThumbnail(e.target.files?.[0] || null)
-							}
-							className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						/>
-					</div>
+    loadNews();
+  }, [selectedNewsId, API_BASE]);
 
-					{/* Featured Checkbox */}
-					<div className="flex items-center">
-						<input
-							type="checkbox"
-							id="isFeatured"
-							name="isFeatured"
-							checked={isFeatured}
-							onChange={(e) => setIsFeatured(e.target.checked)}
-							className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-						/>
-						<label
-							htmlFor="isFeatured"
-							className="ml-2 block text-sm font-medium text-gray-700"
-						>
-							Is Featured
-						</label>
-					</div>
+  const resetForm = () => {
+    setId("");
+    setTitle("");
+    setDate("");
+    setBannerImage(null);
+    setThumbnail(null);
+    setNewsHtml("");
+    setIsFeatured(false);
+    setExistingBannerUrl("");
+    setExistingThumbnailUrl("");
+  };
 
-					{/* News HTML */}
-										<div>
-						<label
-							htmlFor="newsHtml"
-							className="block text-sm font-medium text-gray-700 mb-1"
-						>
-							News HTML
-						</label>
-						<TextEditor
-							content={newsHtml}
-							setContent={setNewsHtml}
-						/>
-					</div>
-					{/* Submit Button */}
-					<button
-						type="submit"
-						className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-					>
-						Submit
-					</button>
-				</form>
-			</div>
-		</div>
-	)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("title", title);
+
+    // Convert date to ISO-8601 if provided
+    if (date) {
+      const isoDate = new Date(date + "T00:00:00Z").toISOString();
+      formData.append("date", isoDate);
+    }
+
+    formData.append("newsHtml", newsHtml);
+    formData.append("isFeatured", isFeatured.toString());
+
+    if (bannerImage) formData.append("bannerImage", bannerImage);
+    if (thumbnail) formData.append("thumbnail", thumbnail);
+
+    if (!selectedNewsId && id) formData.append("id", id);
+
+    try {
+      let res: Response;
+      if (selectedNewsId) {
+        res = await fetch(`${API_BASE}/news/${selectedNewsId}`, {
+          method: "PATCH",
+          body: formData,
+        });
+      } else {
+        res = await fetch(`${API_BASE}/news`, {
+          method: "POST",
+          body: formData,
+        });
+      }
+
+      if (!res.ok) throw new Error("Network response was not ok");
+
+      alert(selectedNewsId ? "News updated successfully!" : "News created successfully!");
+
+      // Refresh list
+      const listRes = await fetch(`${API_BASE}/news`);
+      const listResult = await listRes.json();
+      setNewsList(Array.isArray(listResult) ? listResult : listResult.data || []);
+
+      setSelectedNewsId("");
+      resetForm();
+    } catch (err) {
+      console.error("Submit error:", err);
+      alert("Something went wrong");
+    }
+  };
+
+  return (
+    <div className="min-h-screen p-8 bg-gray-100">
+      <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+        <div className="flex justify-between mb-6">
+          <h1 className="text-2xl font-bold">
+            {selectedNewsId ? "Edit News" : "Create News"}
+          </h1>
+          <button onClick={() => router.back()}>← Back</button>
+        </div>
+
+        {/* Select existing news */}
+        <select
+          value={selectedNewsId}
+          onChange={(e) => setSelectedNewsId(e.target.value)}
+          className="mb-6 w-full border p-2 rounded"
+        >
+          <option value="">-- Create New News --</option>
+          {newsList.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.title}
+            </option>
+          ))}
+        </select>
+
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Slug */}
+            {!selectedNewsId ? (
+              <div>
+                <label className="block text-sm mb-1">Slug (optional)</label>
+                <input
+                  value={id}
+                  onChange={(e) =>
+                    setId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
+                  }
+                  className="w-full border p-2 rounded"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm mb-1">Slug</label>
+                <div className="bg-gray-100 p-2 rounded font-mono">{id}</div>
+              </div>
+            )}
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm mb-1">Title</label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full border p-2 rounded"
+              />
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-sm mb-1">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full border p-2 rounded"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Select date of news (optional)
+              </p>
+            </div>
+
+            {/* Banner */}
+            <div>
+              <label className="block text-sm mb-1">Banner Image</label>
+              {existingBannerUrl && (
+                <img src={existingBannerUrl} className="mb-2 max-h-60 rounded" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setBannerImage(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            {/* Thumbnail */}
+            <div>
+              <label className="block text-sm mb-1">Thumbnail</label>
+              {existingThumbnailUrl && (
+                <img src={existingThumbnailUrl} className="mb-2 h-40 w-40 object-cover rounded" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
+              />
+            </div>
+
+            {/* Featured */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+              />
+              <label>Featured</label>
+            </div>
+
+            {/* Content */}
+            <div>
+              <label className="block text-sm mb-1">News Content</label>
+              <TextEditor content={newsHtml} setContent={setNewsHtml} />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button className="bg-blue-600 text-white px-6 py-2 rounded">
+                {selectedNewsId ? "Update News" : "Create News"}
+              </button>
+
+              {selectedNewsId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedNewsId("");
+                    resetForm();
+                  }}
+                  className="bg-gray-500 text-white px-6 py-2 rounded"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 }

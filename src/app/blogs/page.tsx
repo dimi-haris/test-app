@@ -39,7 +39,9 @@ export default function Blogs() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://model-api.godimi.com/api/v1";
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 
   // Fetch list of all blogs
   useEffect(() => {
@@ -73,14 +75,11 @@ export default function Blogs() {
         setBlogHtml(blog.blogHtml || "");
         setIsFeatured(blog.isFeatured ?? false);
 
-        // Construct image URLs (adjust based on your actual image serving)
-        const baseUrl = "https://model-api.godimi.com"; // or your CDN/domain
-
         if (blog.bannerImage) {
           setExistingBannerUrl(
             blog.bannerImage.startsWith("https")
               ? blog.bannerImage
-              : `${baseUrl}/uploads/blog_banner_images/${blog.bannerImage}`
+              : `${API_URL}/uploads/blog_banner_images/${blog.bannerImage}`
           );
         }
 
@@ -88,7 +87,7 @@ export default function Blogs() {
           setExistingThumbnailUrl(
             blog.thumbnail.startsWith("https")
               ? blog.thumbnail
-              : `${baseUrl}/uploads/blog_thumbnails/${blog.thumbnail}`
+              : `${API_URL}/uploads/blog_thumbnails/${blog.thumbnail}`
           );
         }
 
